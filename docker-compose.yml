@@ -5,6 +5,13 @@ services:
 
   stats-db:
     image: postgres:16.1
+    container_name: stats-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_USER=dbuser
+      - POSTGRES_DB=stats
 
   ewm-service:
     ports:
