@@ -27,4 +27,34 @@ public class EndpointHit {
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
+
+    protected EndpointHit() {
+    }
+
+    public EndpointHit(String app, String uri, String ip, LocalDateTime timestamp) {
+        this.app = app;
+        this.uri = uri;
+        this.ip = ip;
+        this.timestamp = timestamp;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getApp() {
+        return app;
+    }
+
+    public String getUri() {
+        return uri;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 }
