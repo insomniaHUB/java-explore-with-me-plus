@@ -1,6 +1,7 @@
 package ru.practicum.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,12 +14,10 @@ class ViewStatsDtoTest {
 
     @Test
     void deserializesListFromSpecExample() throws Exception {
-        String json = """
-                [
-                  {"app": "ewm-main-service", "uri": "/events/1", "hits": 6},
-                  {"app": "ewm-main-service", "uri": "/events", "hits": 2}
-                ]
-                """;
+        String json = mapper.createArrayNode()
+                .add(statsNode("ewm-main-service", "/events/1", 6))
+                .add(statsNode("ewm-main-service", "/events", 2))
+                .toString();
 
         List<ViewStatsDto> stats = List.of(mapper.readValue(json, ViewStatsDto[].class));
 
@@ -36,5 +35,12 @@ class ViewStatsDtoTest {
 
         assertThat(mapper.readValue(json, ViewStatsDto.class)).isEqualTo(dto);
         assertThat(json).contains("\"app\":\"ewm-main-service\"", "\"uri\":\"/events/1\"", "\"hits\":6");
+    }
+
+    private ObjectNode statsNode(String app, String uri, long hits) {
+        return mapper.createObjectNode()
+                .put("app", app)
+                .put("uri", uri)
+                .put("hits", hits);
     }
 }
