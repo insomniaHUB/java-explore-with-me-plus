@@ -1,7 +1,10 @@
 package ru.practicum.stats.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.ViewStatsDto;
+import ru.practicum.stats.mapper.EndpointHitMapper;
 import ru.practicum.stats.repository.HitRepository;
 
 import java.time.LocalDateTime;
@@ -14,6 +17,11 @@ public class StatsService {
 
     public StatsService(HitRepository hitRepository) {
         this.hitRepository = hitRepository;
+    }
+
+    @Transactional
+    public void saveHit(EndpointHitDto hit) {
+        hitRepository.save(EndpointHitMapper.toEntity(hit));
     }
 
     public List<ViewStatsDto> getStats(
