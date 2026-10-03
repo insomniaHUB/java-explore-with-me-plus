@@ -24,6 +24,7 @@ public class StatsService {
         hitRepository.save(EndpointHitMapper.toEntity(hit));
     }
 
+    @Transactional(readOnly = true)
     public List<ViewStatsDto> getStats(
             LocalDateTime start,
             LocalDateTime end,
