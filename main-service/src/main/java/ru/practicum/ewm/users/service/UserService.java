@@ -1,6 +1,7 @@
 package ru.practicum.ewm.users.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.exception.ConflictException;
@@ -29,12 +30,14 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getUsers(List<Long> ids, Integer from, Integer size) {
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+
         if (ids == null || ids.isEmpty()) {
-            return userRepository.findAllWithOffset(from, size).stream()
+            return userRepository.findAll(pageRequest).getContent().stream()
                     .map(userMapper::toUserDto)
                     .toList();
         } else {
-            return userRepository.findByIdInWithOffset(ids, from, size).stream()
+            return userRepository.findByIdIn(ids, pageRequest).stream()
                     .map(userMapper::toUserDto)
                     .toList();
         }
