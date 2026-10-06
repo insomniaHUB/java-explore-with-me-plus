@@ -1,7 +1,6 @@
 package ru.practicum.ewm.categories.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.categories.dto.CategoryDto;
@@ -57,8 +56,7 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(Integer from, Integer size) {
-        PageRequest pageRequest = PageRequest.of(from / size, size);
-        return categoryRepository.findAll(pageRequest).stream()
+        return categoryRepository.findAllWithOffset(from, size).stream()
                 .map(categoryMapper::toCategoryDto)
                 .toList();
     }

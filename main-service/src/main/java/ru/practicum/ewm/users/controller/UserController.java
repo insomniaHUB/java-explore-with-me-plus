@@ -1,6 +1,7 @@
 package ru.practicum.ewm.users.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class UserController {
     @GetMapping
     public List<UserDto> getUsers(@RequestParam(required = false) List<Long> ids,
                                   @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
-                                  @RequestParam(defaultValue = "10") @PositiveOrZero Integer size) {
+                                  @RequestParam(defaultValue = "10") @Positive Integer size) {
         return userService.getUsers(ids, from, size);
     }
 
