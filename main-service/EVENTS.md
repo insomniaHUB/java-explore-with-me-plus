@@ -77,42 +77,10 @@ Clock вынесен в bean `eventClock` для воспроизводимых 
 
 ## Проверки
 
-Из корня проекта: `mvn -pl main-service -am -Pcheck verify`.
 HTTP/сервисные тесты используют явные mock-поставщики счётчиков только в тестовом контексте.
 
 Для PostgreSQL-проверок нужна отдельная БД: перед каждым тестом очищаются events/categories/users.
 Тест проверяет, что имя БД заканчивается на `_test`. Не указывать рабочую БД.
-
-Первый запуск тестового контейнера:
-
-```powershell
-docker run --name ewm-events-test-db --memory 256m --cpus 1 -e POSTGRES_USER=dbuser -e POSTGRES_PASSWORD=12345 -e POSTGRES_DB=events_test -p 127.0.0.1:55434:5432 -d postgres:16.1
-docker exec ewm-events-test-db pg_isready -U dbuser -d events_test
-```
-
-Если контейнер уже создан: `docker start ewm-events-test-db`.
-После сообщения accepting connections:
-
-```powershell
-mvn -pl main-service -am -Pcheck verify "-Devents.db.tests=true"
-docker stop ewm-events-test-db
-```
-
-При необходимости переопределяются EVENTS_TEST_DB_URL, EVENTS_TEST_DB_USER, EVENTS_TEST_DB_PASSWORD.
-По умолчанию: jdbc:postgresql://localhost:55434/events_test, пользователь dbuser, пароль 12345.
-
-Проверки включают реальные COMMIT (нет общей откатываемой транзакции теста):
-- создание через API и связи с пользователями/категориями;
-- цикл отмена -> повторная модерация -> публикация, запрещённые переходы;
-- PATCH с null/false/0;
-- фильтры и некратное смещение from=1,size=2;
-- отсутствие N+1 и пакетные вызовы обоих поставщиков;
-- отсутствие изменений в БД после ответа 503;
-- лимит, защита используемой категории и HTTP 400 для size=0;
-- блокировка Event между двумя независимыми транзакциями PostgreSQL.
-
-В тесте блокировки ожидается сообщение PostgreSQL `canceling statement due to lock timeout`;
-это проверяемый сценарий, а не падение набора тестов.
 
 Результат локальной проверки: 67 тестов основного сервиса без ошибок и пропусков
 (27 HTTP, 24 сервисных, 5 контрактов счётчиков, 11 PostgreSQL).
