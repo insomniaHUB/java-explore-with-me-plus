@@ -2,12 +2,14 @@ package ru.practicum.ewm.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,7 +44,7 @@ public class ErrorHandler {
     public ApiError handleConflict(final ConflictException e) {
         return ApiError.builder()
                 .status(HttpStatus.CONFLICT.name())
-                .reason("Email уже используется.")
+                .reason("Для запрошенной операции не выполнены условия.")
                 .message(e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -97,6 +99,28 @@ public class ErrorHandler {
         return ApiError.builder()
                 .status(HttpStatus.BAD_REQUEST.name())
                 .reason("Неправильно сформированный запрос.")
+                .message(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, HandlerMethodValidationException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleInvalidRequest(final Exception e) {
+        return ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST.name())
+                .reason("Неправильно сформированный запрос.")
+                .message(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiError handleServiceUnavailable(final ServiceUnavailableException e) {
+        return ApiError.builder()
+                .status(HttpStatus.SERVICE_UNAVAILABLE.name())
+                .reason("Не удалось получить счётчики событий.")
                 .message(e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
