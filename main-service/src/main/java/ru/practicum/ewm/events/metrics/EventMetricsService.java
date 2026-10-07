@@ -16,17 +16,34 @@ public class EventMetricsService {
     private final ObjectProvider<EventViewsProvider> viewsProvider;
 
     public EventMetrics load(Set<Long> eventIds) {
+        return new EventMetrics(loadConfirmedRequests(eventIds), loadViews(eventIds));
+    }
+
+    public Map<Long, Long> loadConfirmedRequests(Set<Long> eventIds) {
         if (eventIds.isEmpty()) {
-            return new EventMetrics(Map.of(), Map.of());
+            return Map.of();
         }
         ConfirmedRequestsProvider requests = requestsProvider.getIfAvailable();
-        EventViewsProvider views = viewsProvider.getIfAvailable();
-        if (requests == null || views == null) {
-            throw new ServiceUnavailableException("Не подключены поставщики счётчиков заявок и просмотров");
+        if (requests == null) {
+            throw new ServiceUnavailableException("Не подключён поставщик счётчиков заявок");
         }
         try {
-            return new EventMetrics(checkCounts(requests.countConfirmedRequests(eventIds)),
-                    checkCounts(views.countUniqueViews(eventIds)));
+            return checkCounts(requests.countConfirmedRequests(eventIds));
+        } catch (RestClientException exception) {
+            throw new ServiceUnavailableException("Не удалось получить количество заявок", exception);
+        }
+    }
+
+    public Map<Long, Long> loadViews(Set<Long> eventIds) {
+        if (eventIds.isEmpty()) {
+            return Map.of();
+        }
+        EventViewsProvider views = viewsProvider.getIfAvailable();
+        if (views == null) {
+            throw new ServiceUnavailableException("Не подключён поставщик счётчиков просмотров");
+        }
+        try {
+            return checkCounts(views.countUniqueViews(eventIds));
         } catch (RestClientException exception) {
             throw new ServiceUnavailableException("Сервис статистики недоступен", exception);
         }

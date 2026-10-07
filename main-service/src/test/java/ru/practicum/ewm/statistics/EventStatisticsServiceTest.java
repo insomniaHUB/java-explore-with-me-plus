@@ -11,10 +11,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.ResourceAccessException;
 import ru.practicum.dto.EndpointHitDto;
+import ru.practicum.ewm.exception.ServiceUnavailableException;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,7 +41,7 @@ class EventStatisticsServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new EventStatisticsService(statsClient, new ObjectMapper());
+        service = new EventStatisticsService(statsClient, new ObjectMapper(), Clock.systemDefaultZone());
     }
 
     @Test
@@ -94,7 +100,7 @@ class EventStatisticsServiceTest {
                 .thenReturn(ResponseEntity.ok().build());
 
         assertThatThrownBy(() -> service.getViews(List.of(1L), START, END, true))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ServiceUnavailableException.class)
                 .hasMessageContaining("пустое тело ответа");
     }
 
@@ -104,6 +110,41 @@ class EventStatisticsServiceTest {
                 .thenThrow(new ResourceAccessException("Connection refused"));
 
         assertThatThrownBy(() -> service.getViews(List.of(1L), START, END, true))
-                .isInstanceOf(ResourceAccessException.class);
+                .isInstanceOf(ServiceUnavailableException.class)
+                .hasCauseInstanceOf(ResourceAccessException.class);
+    }
+
+    @Test
+    void implementsUniqueViewsContractWithOneRequestForWholePeriod() {
+        service = new EventStatisticsService(statsClient, new ObjectMapper(),
+                Clock.fixed(Instant.parse("2026-10-07T00:00:00Z"), ZoneOffset.UTC));
+        LocalDateTime epoch = LocalDateTime.of(1970, 1, 1, 0, 0);
+        when(statsClient.get(epoch, END, List.of("/events/1"), true)).thenReturn(ResponseEntity.ok(List.of()));
+
+        assertThat(new StatisticsEventViewsProvider(service).countUniqueViews(Set.of(1L))).containsEntry(1L, 0L);
+        verify(statsClient).get(epoch, END, List.of("/events/1"), true);
+        verifyNoMoreInteractions(statsClient);
+    }
+
+    @Test
+    void rejectsMalformedAndInvalidCountersInsteadOfReturningZero() {
+        Map<String, Object> missingHits = new HashMap<>();
+        missingHits.put("app", "ewm-main-service");
+        missingHits.put("uri", "/events/1");
+        for (Object response : List.of(Map.of("unexpected", "object"), List.of(missingHits),
+                List.of(Map.of("app", "ewm-main-service", "uri", "/events/1", "hits", -1)))) {
+            when(statsClient.get(START, END, List.of("/events/1"), true)).thenReturn(ResponseEntity.ok(response));
+            assertThatThrownBy(() -> service.getViews(List.of(1L), START, END, true))
+                    .isInstanceOf(ServiceUnavailableException.class);
+        }
+    }
+
+    @Test
+    void recordingFailureIsServiceUnavailable() {
+        when(statsClient.save(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new ResourceAccessException("offline"));
+        assertThatThrownBy(() -> service.recordHit("/events", "127.0.0.1"))
+                .isInstanceOf(ServiceUnavailableException.class)
+                .hasCauseInstanceOf(ResourceAccessException.class);
     }
 }

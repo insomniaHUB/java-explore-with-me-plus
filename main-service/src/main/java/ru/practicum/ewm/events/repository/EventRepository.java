@@ -9,11 +9,16 @@ import org.springframework.data.repository.query.Param;
 import ru.practicum.ewm.events.model.Event;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.Set;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
     @Override
     @EntityGraph(attributePaths = {"category", "initiator"})
     Optional<Event> findById(Long id);
+
+    @EntityGraph(attributePaths = {"category", "initiator"})
+    List<Event> findByIdIn(Set<Long> ids);
 
     boolean existsByCategoryId(Long categoryId);
 

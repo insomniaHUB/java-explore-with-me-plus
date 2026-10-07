@@ -67,10 +67,28 @@ class EventMetricsServiceTest {
 
     @Test
     void invalidCounterResponseIsUnavailable() {
-        providers();
+        when(requestsBeans.getIfAvailable()).thenReturn(requests);
         when(requests.countConfirmedRequests(Set.of(1L))).thenReturn(Map.of(1L, -1L));
         assertThatThrownBy(() -> service.load(Set.of(1L))).isInstanceOf(ServiceUnavailableException.class);
         verifyNoInteractions(views);
+    }
+
+    @Test
+    void separateCounterQueriesDoNotCallOtherProvider() {
+        when(requestsBeans.getIfAvailable()).thenReturn(requests);
+        when(requests.countConfirmedRequests(Set.of(1L))).thenReturn(Map.of(1L, 2L));
+        assertThat(service.loadConfirmedRequests(Set.of(1L))).containsEntry(1L, 2L);
+        verifyNoInteractions(viewsBeans, views);
+    }
+
+    @Test
+    void viewsCanBeLoadedWithoutRequestsProviderAndEmptySelectionsNeedNeither() {
+        when(viewsBeans.getIfAvailable()).thenReturn(views);
+        when(views.countUniqueViews(Set.of(1L))).thenReturn(Map.of(1L, 3L));
+        assertThat(service.loadViews(Set.of(1L))).containsEntry(1L, 3L);
+        assertThat(service.loadViews(Set.of())).isEmpty();
+        assertThat(service.loadConfirmedRequests(Set.of())).isEmpty();
+        verifyNoInteractions(requestsBeans, requests);
     }
 
     private void providers() {
