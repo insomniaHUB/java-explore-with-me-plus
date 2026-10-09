@@ -43,6 +43,7 @@ public class EventService {
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         Category category = findCategory(dto.getCategory());
         LocalDateTime now = LocalDateTime.now(eventClock);
+        requireFutureDate(dto.getEventDate(), now);
         requireDate(dto.getEventDate(), now.plusHours(2));
         Event event = eventRepository.save(eventMapper.toEvent(dto, initiator, category, now));
         // У новой записи ещё нет заявок и просмотров. Внешние вызовы здесь не нужны.
@@ -75,7 +76,9 @@ public class EventService {
             throw new ConflictException("Изменять можно только ожидающие модерации или отменённые события");
         }
         if (dto.getEventDate() != null) {
-            requireDate(dto.getEventDate(), LocalDateTime.now(eventClock).plusHours(2));
+            LocalDateTime now = LocalDateTime.now(eventClock);
+            requireFutureDate(dto.getEventDate(), now);
+            requireDate(dto.getEventDate(), now.plusHours(2));
         }
         Category category = dto.getCategory() == null ? null : findCategory(dto.getCategory());
         EventMetrics metrics = loadMetrics(List.of(event));
@@ -104,6 +107,9 @@ public class EventService {
     public EventFullDto updateAdmin(Long eventId, UpdateEventAdminRequest dto) {
         Event event = findForUpdate(eventId);
         LocalDateTime now = LocalDateTime.now(eventClock);
+        if (dto.getEventDate() != null) {
+            requireFutureDate(dto.getEventDate(), now);
+        }
         if (dto.getStateAction() == AdminStateAction.PUBLISH_EVENT && event.getState() != EventState.PENDING) {
             throw new ConflictException("Публиковать можно только ожидающее модерации событие");
         }
@@ -179,6 +185,12 @@ public class EventService {
     private void requireOwner(Event event, Long userId) {
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("Событие не найдено или недоступно пользователю");
+        }
+    }
+
+    private void requireFutureDate(LocalDateTime eventDate, LocalDateTime now) {
+        if (!eventDate.isAfter(now)) {
+            throw new ValidationException("Дата события должна быть в будущем");
         }
     }
 

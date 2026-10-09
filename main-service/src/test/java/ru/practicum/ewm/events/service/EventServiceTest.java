@@ -101,6 +101,38 @@ class EventServiceTest {
     }
 
     @Test
+    void rejectsPastDateOnCreationBeforeSaving() {
+        when(users.findById(1L)).thenReturn(Optional.of(owner));
+        when(categories.findById(2L)).thenReturn(Optional.of(category));
+        NewEventDto dto = newEvent();
+        dto.setEventDate(NOW.minusSeconds(1));
+        assertThatThrownBy(() -> service.create(1L, dto)).isInstanceOf(ValidationException.class);
+        verifyNoInteractions(repository, metrics);
+    }
+
+    @Test
+    void rejectsPastDateOnUserUpdateBeforeLoadingCounters() {
+        Event event = lockedOwnEvent(EventState.PENDING);
+        LocalDateTime originalDate = event.getEventDate();
+        UpdateEventUserRequest dto = new UpdateEventUserRequest();
+        dto.setEventDate(NOW.minusSeconds(1));
+        assertThatThrownBy(() -> service.updateOwn(1L, 3L, dto)).isInstanceOf(ValidationException.class);
+        assertThat(event.getEventDate()).isEqualTo(originalDate);
+        verifyNoInteractions(metrics);
+    }
+
+    @Test
+    void rejectsPastDateOnAdminUpdateBeforeLoadingCounters() {
+        Event event = lockedEvent(EventState.PENDING);
+        LocalDateTime originalDate = event.getEventDate();
+        UpdateEventAdminRequest dto = new UpdateEventAdminRequest();
+        dto.setEventDate(NOW.minusSeconds(1));
+        assertThatThrownBy(() -> service.updateAdmin(3L, dto)).isInstanceOf(ValidationException.class);
+        assertThat(event.getEventDate()).isEqualTo(originalDate);
+        verifyNoInteractions(metrics);
+    }
+
+    @Test
     void returnsNotFoundForMissingUserAndCategory() {
         assertThatThrownBy(() -> service.create(1L, newEvent())).isInstanceOf(NotFoundException.class);
         when(users.findById(1L)).thenReturn(Optional.of(owner));
@@ -228,7 +260,7 @@ class EventServiceTest {
         event.setPublishedOn(NOW.minusDays(1));
         successfulMetrics();
         UpdateEventAdminRequest dto = new UpdateEventAdminRequest();
-        dto.setEventDate(event.getPublishedOn().plusHours(1));
+        dto.setEventDate(NOW.plusMinutes(30));
         assertThat(service.updateAdmin(3L, dto).getPublishedOn()).isEqualTo(NOW.minusDays(1));
     }
 

@@ -20,6 +20,7 @@ import ru.practicum.ewm.events.service.EventService;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.exception.ServiceUnavailableException;
+import ru.practicum.ewm.exception.ValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -109,11 +110,27 @@ class EventControllerTest {
         assertThat(dto.getValue().getRequestModeration()).isFalse();
     }
 
+    @ParameterizedTest
+    @CsvSource({"title,2", "title,121", "annotation,19", "annotation,2001", "description,19", "description,7001"})
+    void adminPatchRejectsInvalidTextLengths(String field, int length) throws Exception {
+        mvc.perform(patch("/admin/events/5").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.createObjectNode().put(field, "a".repeat(length)).toString()))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"));
+        verifyNoInteractions(service);
+    }
+
     @Test
-    void adminPatchDoesNotApplyUserTextValidation() throws Exception {
-        mvc.perform(patch("/admin/events/5").contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"ab\"}"))
-                .andExpect(status().isOk());
-        verify(service).updateAdmin(eq(5L), any());
+    void pastDateValidationReturns400ForCreateAndBothUpdates() throws Exception {
+        when(service.create(eq(1L), any())).thenThrow(new ValidationException("past date"));
+        when(service.updateOwn(eq(1L), eq(5L), any())).thenThrow(new ValidationException("past date"));
+        when(service.updateAdmin(eq(5L), any())).thenThrow(new ValidationException("past date"));
+        mvc.perform(post("/users/1/events").contentType(MediaType.APPLICATION_JSON).content(validBody().toString()))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"));
+        String body = "{\"eventDate\":\"2020-10-11 23:10:05\"}";
+        mvc.perform(patch("/users/1/events/5").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"));
+        mvc.perform(patch("/admin/events/5").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"));
     }
 
     @ParameterizedTest
