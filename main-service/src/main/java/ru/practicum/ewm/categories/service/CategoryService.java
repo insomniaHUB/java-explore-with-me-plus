@@ -9,6 +9,7 @@ import ru.practicum.ewm.categories.dto.NewCategoryDto;
 import ru.practicum.ewm.categories.mapper.CategoryMapper;
 import ru.practicum.ewm.categories.model.Category;
 import ru.practicum.ewm.categories.repository.CategoryRepository;
+import ru.practicum.ewm.events.repository.EventRepository;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 
@@ -20,6 +21,7 @@ import java.util.List;
 public class CategoryService {
     private final CategoryMapper categoryMapper;
     private final CategoryRepository categoryRepository;
+    private final EventRepository eventRepository;
 
     public CategoryDto createCategory(NewCategoryDto newCategoryDto) {
         if (categoryRepository.existsByName(newCategoryDto.getName())) {
@@ -47,10 +49,9 @@ public class CategoryService {
             throw new NotFoundException("Категория не найдена");
         }
 
-        // TODO: Когда появится EventRepository, добавить проверку:
-        // if (eventRepository.existsByCategoryId(catId)) {
-        //     throw new ConflictException("Категория используется в событиях");
-        // }
+        if (eventRepository.existsByCategoryId(catId)) {
+            throw new ConflictException("Категория используется в событиях");
+        }
 
         categoryRepository.deleteById(catId);
     }
