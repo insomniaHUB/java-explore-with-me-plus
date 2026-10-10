@@ -1,9 +1,10 @@
 package ru.practicum.ewm.users.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.ewm.common.OffsetPageRequest;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.users.dto.NewUserRequest;
@@ -30,7 +31,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getUsers(List<Long> ids, Integer from, Integer size) {
-        PageRequest pageRequest = PageRequest.of(from / size, size);
+        Pageable pageRequest = new OffsetPageRequest(from, size);
 
         if (ids == null || ids.isEmpty()) {
             return userRepository.findAll(pageRequest).getContent().stream()

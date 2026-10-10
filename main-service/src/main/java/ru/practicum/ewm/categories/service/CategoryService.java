@@ -1,7 +1,7 @@
 package ru.practicum.ewm.categories.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.categories.dto.CategoryDto;
@@ -9,6 +9,7 @@ import ru.practicum.ewm.categories.dto.NewCategoryDto;
 import ru.practicum.ewm.categories.mapper.CategoryMapper;
 import ru.practicum.ewm.categories.model.Category;
 import ru.practicum.ewm.categories.repository.CategoryRepository;
+import ru.practicum.ewm.common.OffsetPageRequest;
 import ru.practicum.ewm.events.repository.EventRepository;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
@@ -58,7 +59,7 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(Integer from, Integer size) {
-        PageRequest pageRequest = PageRequest.of(from / size, size);
+        Pageable pageRequest = new OffsetPageRequest(from, size);
         return categoryRepository.findAll(pageRequest).stream()
                 .map(categoryMapper::toCategoryDto)
                 .toList();
