@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.comments.dto.CommentDto;
 import ru.practicum.ewm.comments.dto.NewCommentDto;
+import ru.practicum.ewm.comments.dto.UpdateCommentDto;
 import ru.practicum.ewm.comments.mapper.CommentMapper;
 import ru.practicum.ewm.comments.model.Comment;
 import ru.practicum.ewm.comments.repository.CommentRepository;
@@ -40,5 +41,31 @@ public class CommentService {
         Comment comment = commentMapper.toComment(newCommentDto, author, event, LocalDateTime.now());
 
         return commentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    public CommentDto updateComment(UpdateCommentDto updateCommentDto, Long userId, Long commentId) {
+        checkUserExists(userId);
+        Comment comment = getOwnComment(userId, commentId);
+
+        comment.setText(updateCommentDto.getText());
+        return commentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    public void deleteComment(Long userId, Long commentId) {
+        checkUserExists(userId);
+        Comment comment = getOwnComment(userId, commentId);
+
+        commentRepository.delete(comment);
+    }
+
+    private void checkUserExists(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("Пользователь не найден");
+        }
+    }
+
+    private Comment getOwnComment(Long userId, Long commentId) {
+        return commentRepository.findByIdAndAuthorId(commentId, userId)
+                .orElseThrow(() -> new NotFoundException("Комментарий не найден"));
     }
 }
