@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import ru.practicum.ewm.events.model.Event;
+import ru.practicum.ewm.events.model.EventState;
 
 import java.util.Optional;
 import java.util.List;
@@ -21,6 +22,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByIdIn(Set<Long> ids);
 
     boolean existsByCategoryId(Long categoryId);
+
+    boolean existsByIdAndState(Long id, EventState state);
 
     // Использовать также при подтверждении заявок, до проверки лимита и подсчёта CONFIRMED.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
